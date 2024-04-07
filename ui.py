@@ -1,10 +1,15 @@
 from __future__ import annotations
-import customtkinter
+from enum import Enum
+from customtkinter import *
 from CTkMessagebox import CTkMessagebox
 from typing_extensions import Self, Any
 
 class Layout: 
     controller: LayoutController
+
+    font: tuple = ("Arial", 13)
+
+    placed_elements: list = []
 
     def __init__(self, controller: LayoutController):
         self.controller = controller
@@ -19,57 +24,60 @@ class Layout:
     def place(self):
         pass
 
+    # New method. The overrides are old ones. Too lazy to update.
     def destroy(self):
-        pass
+        element: CTkBaseClass
+        for element in self.placed_elements:
+            element.destroy()
+
+        self.placed_elements = []
 
 class MainMenuLayout(Layout):
-    label: customtkinter.CTkLabel
-    startButton: customtkinter.CTkButton
-    settingsButton: customtkinter.CTkButton
-    exitButton: customtkinter.CTkButton    
+    label: CTkLabel
+    startButton: CTkButton
+    settingsButton: CTkButton
+    exitButton: CTkButton
 
     def initialize(self):
-        self.label = customtkinter.CTkLabel(
+        self.label = CTkLabel(
             master=self.controller.get_master(), 
-            text="CTkButton"
+            text="MIPamati",
+            font=(self.font[0], 18)
         )
-        self.startButton = customtkinter.CTkButton(
+        self.startButton = CTkButton(
             master=self.controller.get_master(), 
-            text="CTkButton", 
-            command=self.button_start
+            text="Play!", 
+            command=self.button_play,
+            font=self.font
         )
-        self.settingsButton = customtkinter.CTkButton(
+        self.settingsButton = CTkButton(
             master=self.controller.get_master(), 
             text="Settings",
-            command=self.button_settings
+            command=self.button_settings,
+            font=self.font
         )
-        self.exitButton = customtkinter.CTkButton(
+        self.exitButton = CTkButton(
             master=self.controller.get_master(), 
-            text="CTkButton", 
-            command=self.button_exit
+            text="Exit", 
+            command=self.button_exit,
+            font=self.font
         )
 
     def place(self):
-        self.label.place(relx=0.5, rely=0.1, anchor=customtkinter.N)
-        self.startButton.place(relx=0.5, rely=0.5, anchor=customtkinter.CENTER)
-        self.settingsButton.place(relx=0.5, rely=0.6, anchor=customtkinter.CENTER)
-        self.exitButton.place(relx=0.5, rely=0.7, anchor=customtkinter.CENTER)
+        self.label.place(relx=0.5, rely=0.1, anchor=N)
+        self.startButton.place(relx=0.5, rely=0.4, anchor=CENTER)
+        self.settingsButton.place(relx=0.5, rely=0.55, anchor=CENTER)
+        self.exitButton.place(relx=0.5, rely=0.7, anchor=CENTER)
 
-    def destroy(self):
-        self.label.destroy()
-        self.startButton.destroy()
-        self.settingsButton.destroy()
-        self.exitButton.destroy()
+        self.placed_elements = [
+            self.label,
+            self.startButton,
+            self.settingsButton,
+            self.exitButton
+        ]
 
-    def button_start(self):
-
-        # print("button pressed")
-        # print(entry.get(), type(entry.get()))
-        
-        # if not entry.get().isnumeric():
-        #     CTkMessagebox(master=self.master, icon="cancel", message="cringe")
-        #     entry.destroy()
-        pass
+    def button_play(self):
+        self.controller.play()
 
     def button_settings(self):
         self.controller.settings()
@@ -78,7 +86,7 @@ class MainMenuLayout(Layout):
         title = "Stop! Wait a minute..."
         prompt = "Are you sure you wanna quit? Maybe give it another go ;)"
         
-        positiveAnswer = 'Yeah...'
+        positiveAnswer = 'Bye.'
         negativeAnswer = 'NO!'
 
         options = [positiveAnswer, negativeAnswer]
@@ -89,53 +97,93 @@ class MainMenuLayout(Layout):
         if answer is positiveAnswer:
             self.controller.terminate()
 
+
+class GameLayout(Layout):
+    inputNumberLabel: CTkLabel
+    inputNumberEntry: CTkEntry
+
+    def initialize(self):
+        CTkMessagebox(
+            master=self.controller.get_master(),
+            width=1200,
+            title="Help",
+            message=LongMessage.GAME_DESCRIPTION.value, 
+            option_1="COOL"
+        ).get() # Value is dismissed, the method is used to resume execution ONLY after the box is closed
+        print("Messagebox closed")
+
+        self.inputNumberLabel = CTkLabel(
+            master=self.controller.get_master(), 
+            text="Input number",
+            font=(self.font[0], 18)
+        )
+        self.inputNumberEntry = CTkEntry(
+            master=self.controller.get_master(),
+            font=self.font
+        )
+
+    def place(self):
+        self.inputNumberLabel.place(relx=0.5, rely=0.2, anchor=N)
+        self.inputNumberEntry.place(relx=0.5, rely=0.4, anchor=CENTER)
+
+        self.placed_elements = [
+            self.inputNumberLabel, 
+            self.inputNumberEntry,
+        ]
+
 # TODO: implement settings
-#   1. Who begins the game (Human || Computer)
+#   1. Who begins the game (Human || Computer || Random)
 #   2. Alpha-beta pruning (ON || OFF)
 #   3. Cheat window? (Shows game graph that generates from the turn you're on)
 #   4. Endgame debug values? (processing time, calculated branch count)
 class SettingsLayout(Layout):
     def initialize(self):
-        self.label = customtkinter.CTkLabel(
+        self.label = CTkLabel(
             master=self.controller.get_master(), 
-            text="WIP Settings (get outta here)"
+            text="WIP Settings (get outta here)",
+            font=(self.font[0], 18)
         )
-        self.mainMenuButton = customtkinter.CTkButton(
+        self.mainMenuButton = CTkButton(
             master=self.controller.get_master(), 
-            text="Main Menu", 
-            command=self.switch_to_main_menu
+            text="Go back!", 
+            command=self.switch_to_main_menu,
+            font=self.font
         )
 
     def place(self):
-        self.label.place(relx=0.5, rely=0.1, anchor=customtkinter.N)
-        self.mainMenuButton.place(relx=0.5, rely=0.5, anchor=customtkinter.CENTER)
+        self.label.place(relx=0.5, rely=0.1, anchor=N)
+        self.mainMenuButton.place(relx=0.5, rely=0.5, anchor=CENTER)
 
     def destroy(self):
         self.label.destroy()
+        self.mainMenuButton.destroy()
 
     def switch_to_main_menu(self):
         self.controller.main_menu()
 
 class LayoutController:
     # Head CTk instance (to apply layouts to)
-    master: customtkinter.CTk
+    master: CTk
     
     current_layout: Layout | None = None
 
     ### CONTROLLER SETUP
 
-    def set_master(self, master: customtkinter.CTk) -> Self:
+    def set_master(self, master: CTk) -> Self:
         self.master = master
 
         return self
     
-    def get_master(self) -> customtkinter.CTk:
+    def get_master(self) -> CTk:
         return self.master
   
     ### LAYOUTS
 
     def main_menu(self):
         self.set_layout(MainMenuLayout(self))
+
+    def play(self):
+        self.set_layout(GameLayout(self))
 
     def settings(self) -> MainMenuLayout:
         self.set_layout(SettingsLayout(self))
@@ -160,24 +208,38 @@ class LayoutController:
         self.get_master().quit()
 
 class UiInitializer:
-    ui: customtkinter.CTk
+    ui: CTk
     
     def __init__(self):
-        customtkinter.set_appearance_mode("light") # Modes: system (default), light, dark
-        customtkinter.set_default_color_theme("blue") # Themes: blue (default), dark-blue, green
+        set_appearance_mode("light") # Modes: system (default), light, dark
+        set_default_color_theme("blue") # Themes: blue (default), dark-blue, green
 
-    def setup(self, width: int = 400, height: int = 240) -> customtkinter.CTk:
-        self.ui = customtkinter.CTk() 
+    def setup(self, width: int = 400, height: int = 240) -> CTk:
+        self.ui = CTk() 
         self.ui.geometry(f'{width}x{height}')
+
+        self.key_press_event_registration()
 
         return self.ui
     
+    def key_press_event_registration(self):
+        self.ui.bind('<Return>', self.key_pressed)
+
+    def key_pressed(self, e):
+        print('Key press event registered')
+        print(type(e))
+        print(f'{e.char} pressed')
+
     def mainloop(self):
         self.ui.mainloop()
+
+# Because who wants to see such long strings in code, am I right?
+class LongMessage(Enum):
+    GAME_DESCRIPTION = "Spēles sākumā ir dots cilvēka-spēlētāja izvēlētais skaitlis diapazonā no 20 līdz 30. Kopīgs punktu skaits ir vienāds ar 0 (punkti netiek skaitīti katram spēlētājam atsevišķi). Turklāt spēlē tiek izmantota spēles banka, kura sākotnēji ir vienāda ar 0. Spēlētāji veic gājienus pēc kārtas, reizinot pašreizējā brīdī esošu skaitli ar 3, 4 vai 5. Ja reizināšanas rezultātā tiek iegūts pāra skaitlis, tad kopīgajam punktu skaitam tiek pieskaitīts 1 punkts, bet ja nepāra skaitlis – tad 1 punkts tiek atņemts. Savukārt, ja tiek iegūts skaitlis, kas beidzas ar 0 vai 5, tad bankai tiek pieskaitīts 1 punkts. Spēle beidzas, kad ir iegūts skaitlis, kas ir lielāks par vai vienāds ar 3000. Ja kopīgais punktu skaits ir pāra skaitlis, tad no tā atņem bankā uzkrātos punktus. Ja tas ir nepāra skaitlis, tad tam pieskaita bankā uzkrātos punktus. Ja kopīgā punktu skaita gala vērtība ir pāra skaitlis, uzvar spēlētājs, kas uzsāka spēli. Ja nepāra skaitlis, tad otrais spēlētājs."
 
 ui = UiInitializer().setup()
 layout_controller = LayoutController().set_master(ui)
 
-main_menu = layout_controller.main_menu()
+layout_controller.main_menu()
 
 ui.mainloop()
