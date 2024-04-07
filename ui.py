@@ -89,11 +89,16 @@ class MainMenuLayout(Layout):
         if answer is positiveAnswer:
             self.controller.terminate()
 
+# TODO: implement settings
+#   1. Who begins the game (Human || Computer)
+#   2. Alpha-beta pruning (ON || OFF)
+#   3. Cheat window? (Shows game graph that generates from the turn you're on)
+#   4. Endgame debug values? (processing time, calculated branch count)
 class SettingsLayout(Layout):
     def initialize(self):
         self.label = customtkinter.CTkLabel(
             master=self.controller.get_master(), 
-            text="Settings"
+            text="WIP Settings (get outta here)"
         )
         self.mainMenuButton = customtkinter.CTkButton(
             master=self.controller.get_master(), 
@@ -133,7 +138,7 @@ class LayoutController:
         self.set_layout(MainMenuLayout(self))
 
     def settings(self) -> MainMenuLayout:
-        self.set_layout(SettingsLayout(self)) # TODO: settings layout
+        self.set_layout(SettingsLayout(self))
         
     ### HELPERS
 
