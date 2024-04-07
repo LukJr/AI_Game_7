@@ -46,7 +46,7 @@ class MainMenuLayout(Layout):
         self.exitButton = customtkinter.CTkButton(
             master=self.controller.get_master(), 
             text="CTkButton", 
-            command=self.button_settings
+            command=self.button_exit
         )
 
     def place(self):
@@ -75,7 +75,19 @@ class MainMenuLayout(Layout):
         self.controller.settings()
 
     def button_exit(self):
-        pass
+        title = "Stop! Wait a minute..."
+        prompt = "Are you sure you wanna quit? Maybe give it another go ;)"
+        
+        positiveAnswer = 'Yeah...'
+        negativeAnswer = 'NO!'
+
+        options = [positiveAnswer, negativeAnswer]
+        
+        answer = CTkMessagebox(master=self.controller.get_master(), title=title, title_color="red", message=prompt, options=options).get()
+        print(answer)
+
+        if answer is positiveAnswer:
+            self.controller.terminate()
 
 class SettingsLayout(Layout):
     def initialize(self):
@@ -125,15 +137,22 @@ class LayoutController:
         
     ### HELPERS
 
-    def set_layout(self, layout: Layout) -> Any:
+    def set_layout(self, layout: Layout) -> None:
         if not self.current_layout:
             layout.create()
+            self.current_layout = layout
 
             return
         
         layout.initialize()
         self.current_layout.destroy()
         layout.place()
+
+        self.current_layout = layout
+
+    def terminate(self) -> None:
+        print('Shutting down...')
+        self.get_master().quit()
 
 class UiInitializer:
     ui: customtkinter.CTk
