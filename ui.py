@@ -7,7 +7,7 @@ from typing_extensions import Self, Any
 class Layout: 
     controller: LayoutController
 
-    font: tuple = ("Arial", 13)
+    font: tuple = ('Arial', 13)
 
     placed_elements: list = []
 
@@ -32,7 +32,20 @@ class Layout:
 
         self.placed_elements = []
 
-class MainMenuLayout(Layout):
+class MenuLayout(Layout):
+    label: CTkLabel
+    label_font: tuple = ('Arial', 18)
+
+    buttons: list = []
+
+    element_rel_x: float = 0.5 # In the middle
+    
+    label_rel_y: float = 0.1
+    first_element_rel_y: float = 0.4
+
+    inter_element_margin: float = 0.07
+
+class MainMenuLayout(MenuLayout):
     label: CTkLabel
     startButton: CTkButton
     settingsButton: CTkButton
@@ -42,8 +55,9 @@ class MainMenuLayout(Layout):
         self.label = CTkLabel(
             master=self.controller.get_master(), 
             text="MIPamati",
-            font=(self.font[0], 18)
+            font=self.label_font
         )
+
         self.startButton = CTkButton(
             master=self.controller.get_master(), 
             text="Play!", 
@@ -63,18 +77,22 @@ class MainMenuLayout(Layout):
             font=self.font
         )
 
-    def place(self):
-        self.label.place(relx=0.5, rely=0.1, anchor=N)
-        self.startButton.place(relx=0.5, rely=0.4, anchor=CENTER)
-        self.settingsButton.place(relx=0.5, rely=0.55, anchor=CENTER)
-        self.exitButton.place(relx=0.5, rely=0.7, anchor=CENTER)
+        self.buttons = [self.startButton, self.settingsButton, self.exitButton]
 
-        self.placed_elements = [
-            self.label,
-            self.startButton,
-            self.settingsButton,
-            self.exitButton
-        ]
+    def place(self):
+        self.label.place(relx=self.element_rel_x, rely=self.label_rel_y, anchor=N)
+        self.placed_elements.append(self.label)
+
+        btnIndex = 0
+        for button in self.buttons:
+            button.place(
+                relx=self.element_rel_x, 
+                rely=self.first_element_rel_y + self.inter_element_margin * btnIndex, 
+                anchor=CENTER
+            )
+            self.placed_elements.append(button)
+            
+            btnIndex += 1
 
     def button_play(self):
         self.controller.play()
@@ -123,8 +141,8 @@ class GameLayout(Layout):
         )
 
     def place(self):
-        self.inputNumberLabel.place(relx=0.5, rely=0.2, anchor=N)
-        self.inputNumberEntry.place(relx=0.5, rely=0.4, anchor=CENTER)
+        self.inputNumberLabel.place(relx=0.5, rely=0.1, anchor=N)
+        self.inputNumberEntry.place(relx=0.5, rely=0.3, anchor=CENTER)
 
         self.placed_elements = [
             self.inputNumberLabel, 
@@ -136,12 +154,12 @@ class GameLayout(Layout):
 #   2. Alpha-beta pruning (ON || OFF)
 #   3. Cheat window? (Shows game graph that generates from the turn you're on)
 #   4. Endgame debug values? (processing time, calculated branch count)
-class SettingsLayout(Layout):
+class SettingsLayout(MenuLayout):
     def initialize(self):
         self.label = CTkLabel(
             master=self.controller.get_master(), 
             text="WIP Settings (get outta here)",
-            font=(self.font[0], 18)
+            font=self.label_font
         )
         self.mainMenuButton = CTkButton(
             master=self.controller.get_master(), 
@@ -151,8 +169,10 @@ class SettingsLayout(Layout):
         )
 
     def place(self):
-        self.label.place(relx=0.5, rely=0.1, anchor=N)
-        self.mainMenuButton.place(relx=0.5, rely=0.5, anchor=CENTER)
+        self.label.place(relx=self.element_rel_x, rely=self.label_rel_y, anchor=N)
+        self.mainMenuButton.place(relx=self.element_rel_x, rely=self.first_element_rel_y, anchor=CENTER)
+
+        self.placed_elements = [self.label, self.mainMenuButton]
 
     def destroy(self):
         self.label.destroy()
@@ -214,9 +234,11 @@ class UiInitializer:
         set_appearance_mode("light") # Modes: system (default), light, dark
         set_default_color_theme("blue") # Themes: blue (default), dark-blue, green
 
-    def setup(self, width: int = 400, height: int = 240) -> CTk:
+    def setup(self, width: int = 800, height: int = 600) -> CTk:
         self.ui = CTk() 
+
         self.ui.geometry(f'{width}x{height}')
+        self.ui.maxsize(width, height)
 
         self.key_press_event_registration()
 
