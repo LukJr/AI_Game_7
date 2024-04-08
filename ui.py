@@ -109,12 +109,16 @@ class MainMenuLayout(MenuLayout):
 
         options = [positiveAnswer, negativeAnswer]
         
-        answer = CTkMessagebox(master=self.controller.get_master(), title=title, title_color="red", message=prompt, options=options).get()
-        print(answer)
+        answer = CTkMessagebox(
+            master=self.controller.get_master(), 
+            title=title, 
+            title_color="red", 
+            message=prompt, 
+            options=options
+        ).get()
 
         if answer is positiveAnswer:
             self.controller.terminate()
-
 
 class GameLayout(Layout):
     inputNumberLabel: CTkLabel
@@ -182,20 +186,24 @@ class SettingsLayout(MenuLayout):
         self.controller.main_menu()
 
 class LayoutController:
-    # Head CTk instance (to apply layouts to)
-    master: CTk
+    # UI Handler that does the nitty gritty actions, 
+    # holds head CTk instance which layouts get applied to
+    ui_handler: UiHandler
     
     current_layout: Layout | None = None
 
     ### CONTROLLER SETUP
 
-    def set_master(self, master: CTk) -> Self:
-        self.master = master
-
+    def set_ui_handler(self, ui_handler: UiHandler) -> Self:
+        self.ui_handler = ui_handler
+        
         return self
+
+    def get_ui_handler(self) -> UiHandler:
+        return self.ui_handler
     
     def get_master(self) -> CTk:
-        return self.master
+        return self.ui_handler.get_ui()
   
     ### LAYOUTS
 
@@ -224,8 +232,8 @@ class LayoutController:
         self.current_layout = layout
 
     def terminate(self) -> None:
-        print('Shutting down...')
-        self.get_master().quit()
+        print('Izslēdzamies... 😴')
+        self.ui_handler.terminate()
 
 class UiInitializer:
     ui: CTk
@@ -237,31 +245,51 @@ class UiInitializer:
     def setup(self, width: int = 800, height: int = 600) -> CTk:
         self.ui = CTk() 
 
-        self.ui.geometry(f'{width}x{height}')
-        self.ui.maxsize(width, height)
-
-        self.key_press_event_registration()
+        self.handle_window_size(width, height)
+        self.register_key_press_events()
 
         return self.ui
     
-    def key_press_event_registration(self):
+    def handle_window_size(self, width: int, height: int):
+        self.ui.geometry(f'{width}x{height}')
+        self.ui.maxsize(width, height)
+    
+    def register_key_press_events(self):
         self.ui.bind('<Return>', self.key_pressed)
 
     def key_pressed(self, e):
         print('Key press event registered')
         print(type(e))
         print(f'{e.char} pressed')
+        
+
+class UiHandler:
+    ui: CTk
+
+    def __init__(self, ui: CTk):
+        self.ui = ui
+
+    # Made to acquire the UI to pass to the created UI elements.
+    # Please don't use it to call methods from it!
+    # Create methods in UiHandler (self) instead.
+    def get_ui(self) -> CTk:
+        return self.ui
 
     def mainloop(self):
         self.ui.mainloop()
+
+    def terminate(self):
+        self.ui.quit()
 
 # Because who wants to see such long strings in code, am I right?
 class LongMessage(Enum):
     GAME_DESCRIPTION = "Spēles sākumā ir dots cilvēka-spēlētāja izvēlētais skaitlis diapazonā no 20 līdz 30. Kopīgs punktu skaits ir vienāds ar 0 (punkti netiek skaitīti katram spēlētājam atsevišķi). Turklāt spēlē tiek izmantota spēles banka, kura sākotnēji ir vienāda ar 0. Spēlētāji veic gājienus pēc kārtas, reizinot pašreizējā brīdī esošu skaitli ar 3, 4 vai 5. Ja reizināšanas rezultātā tiek iegūts pāra skaitlis, tad kopīgajam punktu skaitam tiek pieskaitīts 1 punkts, bet ja nepāra skaitlis – tad 1 punkts tiek atņemts. Savukārt, ja tiek iegūts skaitlis, kas beidzas ar 0 vai 5, tad bankai tiek pieskaitīts 1 punkts. Spēle beidzas, kad ir iegūts skaitlis, kas ir lielāks par vai vienāds ar 3000. Ja kopīgais punktu skaits ir pāra skaitlis, tad no tā atņem bankā uzkrātos punktus. Ja tas ir nepāra skaitlis, tad tam pieskaita bankā uzkrātos punktus. Ja kopīgā punktu skaita gala vērtība ir pāra skaitlis, uzvar spēlētājs, kas uzsāka spēli. Ja nepāra skaitlis, tad otrais spēlētājs."
 
-ui = UiInitializer().setup()
-layout_controller = LayoutController().set_master(ui)
+ui_handler = UiHandler(UiInitializer().setup())
+
+layout_controller = LayoutController().set_ui_handler(ui_handler)
 
 layout_controller.main_menu()
 
-ui.mainloop()
+
+ui_handler.mainloop()
