@@ -343,9 +343,12 @@ class GameLayout(Layout):
 
     def confirm_input_number(self):
         if self.game.isFirstInput:
-            self.handleInput(self.game.handleFirstInput, self.inputNumberEntry.get())
+            is_input_successful = self.handleInput(self.game.handleFirstInput, self.inputNumberEntry.get())
         else:
-            self.handleInput(self.game.handleMove, self.inputNumberEntry.get())
+            is_input_successful = self.handleInput(self.game.handleMove, self.inputNumberEntry.get())
+
+        if not is_input_successful:
+            return
 
         turn = f'{self.game.getPlayerName()} [{str(self.game.getTurn() + 1)}]'
 
@@ -379,9 +382,11 @@ class GameLayout(Layout):
         
         self.game.switchCurrentPlayer()
         
-    def handleInput(self, callback: Callable, *args):
+    def handleInput(self, callback: Callable, *args) -> int:
         try:
             callback(*args)
+
+            return 1
         except InputException as e:
             CTkMessagebox(
                 master=self.controller.get_master(),
@@ -390,6 +395,8 @@ class GameLayout(Layout):
                 message=e, 
                 option_1="Ow!"
             ).get()
+
+            return 0
         except ValueError as e:
             CTkMessagebox(
                 master=self.controller.get_master(),
@@ -398,6 +405,8 @@ class GameLayout(Layout):
                 message="Who do you think you are?", 
                 option_1="I'm a tester."
             ).get()
+
+            return 0
 
     def switch_to_main_menu(self):
         self.game.die()
@@ -506,6 +515,6 @@ class LongMessage(Enum):
 ui_handler = UiHandler(UiInitializer().setup())
 
 layout_controller = LayoutController().set_ui_handler(ui_handler)
-layout_controller.play()
+layout_controller.main_menu()
 
 ui_handler.mainloop()
