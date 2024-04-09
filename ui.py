@@ -334,6 +334,10 @@ class GameLayout(Layout):
 
     def begin(self):
         self.reset_label_values()
+        # If there was any - to avoid race condition (if new game was started before computer function finished debouncing)
+        self.controller.ui_handler.cancel_last_debounce()
+
+        print("----------- GAME RESET -----------")
 
         self.game.play(self.game.getComputerPlayerId())
         self.goesFirstValue.configure(text=str(self.game.getPlayerName()))
@@ -352,10 +356,17 @@ class GameLayout(Layout):
         if not self.performHumanMove():
             return
         
+        print("-- confirm_input_number triggered")
+
         self.performComputerMoveWithFakeLatency()
+
+        self.inputNumberConfirm.configure(state='disabled')
+        self.controller.ui_handler.debounce_short(self.reenable_input_button)
+
+    def reenable_input_button(self):
+        self.inputNumberConfirm.configure(state='normal')
         
     def switchCurrentPlayer(self):
-        print("SWITCHING CURRENT PLAYER...")
         self.game.switchCurrentPlayer()
         self.turnValue.configure(text=f'{self.game.getPlayerName()} [{str(self.game.getTurn())}]')
         
@@ -364,10 +375,14 @@ class GameLayout(Layout):
         self.scoreValue.configure(text=str(self.game.score))
 
     def performComputerMoveWithFakeLatency(self):
+        print("----Performing computer move with fake latency")
+        if not self.game.isPlayerComputer():
+            return
+        
         # Disable input
         self.changeInputState(False)
         self.controller.ui_handler.debounce(self.performComputerMove)
-        self.controller.ui_handler.debounce(self.changeInputState, 1000, True)
+        self.controller.ui_handler.debounce_without_saving(self.changeInputState, True)
 
     def performComputerMove(self):
         
@@ -705,6 +720,11 @@ class UiInitializer:
 class UiHandler:
     ui: CTk
 
+    debounce_time: int = 100
+    debounce_time_short: int = 1000
+
+    last_debounce_id: str | None = None
+
     def __init__(self, ui: CTk):
         self.ui = ui
 
@@ -715,8 +735,24 @@ class UiHandler:
         return self.ui
     
     # Time in ms
-    def debounce(self, callback: Callable, time: int = 1000, *args):
-        self.ui.after(time, callback, *args)
+    def debounce(self, callback: Callable, *args):
+        self.last_debounce_id = self.ui.after(self.debounce_time, callback, *args)
+        print('saved debounce for', callback.__name__, '==>', self.last_debounce_id)
+
+    def debounce_short(self, callback: Callable, *args):
+        self.ui.after(self.debounce_time_short, callback, *args)
+
+    # Needs its own function so we appropriately remove last debounce (e.g. input one doesn't need to be removed)
+    def debounce_without_saving(self, callback: Callable, *args):
+        self.ui.after(self.debounce_time, callback, *args)
+
+    def cancel_last_debounce(self):
+        if not self.last_debounce_id:
+            return
+        
+        print('Cancelling last debounce... ==>', self.last_debounce_id)
+        self.ui.after_cancel(self.last_debounce_id)
+        self.last_debounce_id = None
 
     def mainloop(self):
         self.ui.mainloop()
