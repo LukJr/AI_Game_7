@@ -335,7 +335,7 @@ class GameLayout(Layout):
     def begin(self):
         self.reset_label_values()
 
-        self.game.play(self.game.getComputerPlayerId())
+        self.game.play(self.game.getHumanPlayerId())
         self.goesFirstValue.configure(text=str(self.game.getPlayerName()))
         
         self.turnValue.configure(text=f'{str(self.game.getPlayerName())} [0]')
@@ -364,7 +364,10 @@ class GameLayout(Layout):
         self.scoreValue.configure(text=str(self.game.score))
 
     def performComputerMoveWithFakeLatency(self):
+        # Disable input
+        self.changeInputState(False)
         self.controller.ui_handler.debounce(self.performComputerMove)
+        self.controller.ui_handler.debounce(self.changeInputState, 1000, True)
 
     def performComputerMove(self):
         moveValue = randint(20, 30) if self.game.isFirstInput else randint(3, 5)
@@ -372,6 +375,11 @@ class GameLayout(Layout):
             return 0
             
         self.performGameLoopActions()
+
+    def changeInputState(self, enabled: bool):
+        state = 'disabled' if not enabled else 'normal'
+        self.inputNumberEntry.configure(state=state)
+        self.inputNumberConfirm.configure(state=state)
 
     def validateInput(self, input: str):
         if self.game.isFirstInput:
@@ -535,8 +543,8 @@ class UiHandler:
         return self.ui
     
     # Time in ms
-    def debounce(self, callback: Callable, time: int = 1000):
-        self.ui.after(time, callback)
+    def debounce(self, callback: Callable, time: int = 1000, *args):
+        self.ui.after(time, callback, *args)
 
     def mainloop(self):
         self.ui.mainloop()
