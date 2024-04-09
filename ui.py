@@ -341,7 +341,7 @@ class GameLayout(Layout):
         self.turnValue.configure(text=f'{str(self.game.getPlayerName())} [0]')
 
         if self.game.isPlayerComputer():
-            self.controller.ui_handler.get_ui().after(1000, self.performComputerMove)
+            self.performComputerMoveWithFakeLatency()
 
     def reset_label_values(self):
         self.bankValue.configure(text='0')
@@ -349,79 +349,71 @@ class GameLayout(Layout):
         self.turnValue.configure(text='')
 
     def confirm_input_number(self):
-        if self.game.isFirstInput:
-            is_input_successful = self.handleInput(self.game.handleFirstInput, self.inputNumberEntry.get())
-        else:
-            is_input_successful = self.handleInput(self.game.handleMove, self.inputNumberEntry.get())
-
-        if not is_input_successful:
-            return
-
-        # score = '0000'
-        # game_score = str(self.game.score) + '-'
-        # for index in range(1, len(str(self.game.score))):
-        #     score[-index] = self.game.score[index - 1]
-
-        self.updateScoreAndBank()
-
-        if self.game.areGameBoundariesMet():
-            self.game.calculateFinalScore()
-            self.updateScoreAndBank()
-
-            isHumanWinner: bool = self.game.getWinnerPlayerId() is self.game.getHumanPlayerId()
-
-            CTkMessagebox(
-                master=self.controller.get_master(),
-                icon='check' if isHumanWinner else 'cancel',
-                title="Draugi, ir labi!" if isHumanWinner else "Draugi, rēali nav labi..." ,
-                message="You won!" if isHumanWinner else "You lost...", 
-                option_1="gg"
-            ).get()
-
-            self.begin()
-
+        if not self.performHumanMove():
             return
         
-        self.switchCurrentPlayer()
-        self.controller.ui_handler.get_ui().after(1000, self.performComputerMove)
+        self.performComputerMoveWithFakeLatency()
         
     def switchCurrentPlayer(self):
+        print("SWITCHING CURRENT PLAYER...")
         self.game.switchCurrentPlayer()
         self.turnValue.configure(text=f'{self.game.getPlayerName()} [{str(self.game.getTurn())}]')
         
     def updateScoreAndBank(self):
         self.bankValue.configure(text=str(self.game.bank))
         self.scoreValue.configure(text=str(self.game.score))
-        
+
+    def performComputerMoveWithFakeLatency(self):
+        self.controller.ui_handler.debounce(self.performComputerMove)
+
     def performComputerMove(self):
-        if self.game.isFirstInput:
-            self.game.handleFirstInput(randint(20, 30))
-        else:
-            self.game.handleMove(randint(3, 5))
+        moveValue = randint(20, 30) if self.game.isFirstInput else randint(3, 5)
+        if not self.validateInput(moveValue):
+            return 0
             
+        self.performGameLoopActions()
+
+    def validateInput(self, input: str):
+        if self.game.isFirstInput:
+            return self.handleInput(self.game.handleFirstInput, input)
+        
+        return self.handleInput(self.game.handleMove, input)
+
+    def performHumanMove(self):
+        if not self.validateInput(self.inputNumberEntry.get()):
+            return 0
+
+        self.performGameLoopActions()
+
+        return 1
+
+    # Happens after input validation (either Human or Computer)
+    def performGameLoopActions(self):
         self.updateScoreAndBank()
         
         if self.game.areGameBoundariesMet():
-            self.game.calculateFinalScore()
-            self.updateScoreAndBank()
-
-            isHumanWinner: bool = self.game.getWinnerPlayerId() is self.game.getHumanPlayerId()
-
-            CTkMessagebox(
-                master=self.controller.get_master(),
-                icon='check' if isHumanWinner else 'cancel',
-                title="Draugi, ir labi!" if isHumanWinner else "Draugi, rēali nav labi..." ,
-                message="You won!" if isHumanWinner else "You lost...", 
-                option_1="gg"
-            ).get()
-
-            self.begin()
+            self.handleGameFinish()
 
             return
         
         self.switchCurrentPlayer()
-            
 
+    def handleGameFinish(self):
+        self.game.calculateFinalScore()
+        self.updateScoreAndBank()
+
+        isHumanWinner: bool = self.game.getWinnerPlayerId() is self.game.getHumanPlayerId()
+
+        CTkMessagebox(
+            master=self.controller.get_master(),
+            icon='check' if isHumanWinner else 'cancel',
+            title="Draugi, ir labi!" if isHumanWinner else "Draugi, rēali nav labi..." ,
+            message="You won!" if isHumanWinner else "You lost...", 
+            option_1="gg"
+        ).get()
+
+        self.begin()
+            
     def handleInput(self, callback: Callable, *args) -> int:
         try:
             callback(*args)
@@ -541,6 +533,10 @@ class UiHandler:
     # Create methods in UiHandler (self) instead.
     def get_ui(self) -> CTk:
         return self.ui
+    
+    # Time in ms
+    def debounce(self, callback: Callable, time: int = 1000):
+        self.ui.after(time, callback)
 
     def mainloop(self):
         self.ui.mainloop()

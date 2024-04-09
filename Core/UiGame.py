@@ -60,7 +60,7 @@ class UiGame:
 		self.currentPlayerId = playerId
 
 	def isPlayerComputer(self) -> bool:
-		print(self.currentPlayerId)
+		print("CURRENT PLAYER ID", self.currentPlayerId)
 		return self.currentPlayerId == self.getComputerPlayerId()
 
 	def getHumanPlayerId(self) -> int:
@@ -115,7 +115,7 @@ class UiGame:
 
 		self.recalculateScore()
 		self.recalculateBank()
-		
+
 	def recalculateScore(self) -> None:
 		print(f'Score before recalculation: {self.score}')
 
