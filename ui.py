@@ -376,12 +376,156 @@ class GameLayout(Layout):
         turn = 0
         minmax_alphabeta = 0 # 0 = minmax 1 = alpha-beta
 
+        class GameState: # 
+            def __init__(self, number, bank, turn=0, parent=None, hValue=None, lastmove=None):
+                self.number = number
+                self.bank = bank
+                self.turn = turn
+                self.parent = parent
+                self.children = []
+                self.hValue = hValue
+                self.lastmove=lastmove
+
+            def add_child(self, child):
+                self.children.append(child)
+
+            def get_child_with_highest_hValue(self):
+                if not self.children:
+                    return None  # Return None if there are no children
+                max_child = max(self.children, key=lambda x: x.hValue)
+                return max_child
+
+            def get_lastmove_of_child_with_highest_hValue(self):
+                max_child = self.get_child_with_highest_hValue()
+                if max_child:
+                    return max_child.lastmove
+                return None
+            
+            def get_child_with_min_hValue(self):
+                if not self.children:
+                    return None  # Return None if there are no children
+                min_child = min(self.children, key=lambda x: x.hValue)
+                return min_child
+
+            def get_lastmove_of_child_with_min_hValue(self):
+                min_child = self.get_child_with_min_hValue()
+                if min_child:
+                    return min_child.lastmove
+                return None
+
+        def is_even(num):
+            return num % 2 == 0
+
+        def ends_in_0_or_5(num):
+            return str(num).endswith(('0', '5'))
+        
+        def minmax_generator(current_state):
+            if current_state.number >= 3000:
+                if is_even(current_state.number):
+                    if is_even(current_state.number - current_state.bank):
+                        current_state.hValue = 1
+                    else:
+                        current_state.hValue = -1
+                else:
+                    if is_even(current_state.number + current_state.bank):
+                        current_state.hValue = 1
+                    else:
+                        current_state.hValue = -1
+                return
+            
+            for multiplier in [3, 4, 5]:
+                new_turn = current_state.turn + 1
+                new_number = current_state.number * multiplier
+                new_number = new_number + (1 if is_even(new_number) else -1)
+                new_bank = current_state.bank + (1 if ends_in_0_or_5(new_number) else 0)
+                
+
+                new_state = GameState(new_number, new_bank, new_turn, current_state,lastmove=multiplier)
+                current_state.add_child(new_state)
+                
+                minmax_generator(new_state)
+            if is_even(current_state.turn):
+                current_state.hValue = max(child.hValue for child in current_state.children)
+            else:
+                current_state.hValue = min(child.hValue for child in current_state.children)
+
+        def alphabeta_generator(current_state, alpha, beta):
+            if current_state.number >= 3000:
+                if is_even(current_state.number):
+                    if is_even(current_state.number - current_state.bank):
+                        current_state.hValue = 1
+                        return 1
+                    else:
+                        current_state.hValue = -1
+                        return -1
+                else:
+                    if is_even(current_state.number + current_state.bank):
+                        current_state.hValue = 1
+                        return 1
+                    else:
+                        current_state.hValue = -1
+                        return -1
+            
+            if is_even(current_state.turn): #Maximizer turn
+                value = float('-inf')
+                for multiplier in [3, 4, 5]:
+                    new_turn = current_state.turn + 1
+                    new_number = current_state.number * multiplier
+                    new_number = new_number + (1 if is_even(new_number) else -1)
+                    new_bank = current_state.bank + (1 if ends_in_0_or_5(new_number) else 0)
+                    new_state = GameState(new_number, new_bank, new_turn, current_state,lastmove=multiplier)
+                    current_state.add_child(new_state)
+                    new_state.hValue = value
+                    value = max(value, alphabeta_generator(new_state, alpha, beta))
+                    current_state.hValue = value
+                    alpha = max(alpha, value)
+                    if alpha >= beta:
+                        break  # Beta cut-off
+                return value
+            else: #Minimizer turn
+                value = float('inf')
+                for multiplier in [3, 4, 5]:
+                    new_turn = current_state.turn + 1
+                    new_number = current_state.number * multiplier
+                    new_number = new_number + (1 if is_even(new_number) else -1)
+                    new_bank = current_state.bank + (1 if ends_in_0_or_5(new_number) else 0)
+                    new_state = GameState(new_number, new_bank, new_turn, current_state, lastmove=multiplier)
+                    current_state.add_child(new_state)
+                    value = min(value, alphabeta_generator(new_state, alpha, beta))
+                    current_state.hValue = value
+                    beta = min(beta, value)
+                    if alpha >= beta:
+                        break  # Alpha cut-off
+                return value
+
+        
+
+        #initialize requiered game state to generate variables
+        root_state = GameState(score, bank, turn)
+
         if (minmax_alphabeta):
             # alpha-beta
+            alphabeta_generator(root_state, float('-inf'), float('inf'))
+            #TOD chose the best move from rootstate
+            if (is_even(turn)):
+                moveValue = root_state.get_lastmove_of_child_with_highest_hValue()
+            else:
+                moveValue = root_state.get_lastmove_of_child_with_min_hValue()
             moveValue = randint(20, 30) if self.game.isFirstInput else randint(3, 5) 
         else:
             # MinMax
-            moveValue = randint(20, 30) if self.game.isFirstInput else randint(3, 5)
+            minmax_generator(root_state)
+
+            if (is_even(turn)):
+                moveValue = root_state.get_lastmove_of_child_with_highest_hValue()
+            else:
+                moveValue = root_state.get_lastmove_of_child_with_min_hValue()
+            
+        #coment this out when ready to test
+        moveValue = randint(20, 30) if self.game.isFirstInput else randint(3, 5) #replace with the minmax generator outcome
+
+            
+
 
         if not self.validateInput(moveValue):
             return 0
