@@ -2,12 +2,14 @@ from __future__ import annotations
 from enum import Enum
 from customtkinter import *
 from CTkMessagebox import CTkMessagebox
-from typing_extensions import Self, Any
+from typing_extensions import Self, Any, Callable
+from Core.UiGame import UiGame
+from Exceptions.InputException import InputException
 
 class Layout: 
     controller: LayoutController
 
-    font: tuple = ('Arial', 13)
+    font: tuple = ('Arial', 18)
 
     placed_elements: list = []
 
@@ -34,7 +36,7 @@ class Layout:
 
 class MenuLayout(Layout):
     label: CTkLabel
-    label_font: tuple = ('Arial', 18)
+    label_font: tuple = ('Arial', 36)
 
     buttons: list = []
 
@@ -43,7 +45,10 @@ class MenuLayout(Layout):
     label_rel_y: float = 0.1
     first_element_rel_y: float = 0.4
 
-    inter_element_margin: float = 0.07
+    inter_element_margin: float = 0.1
+
+    element_width: int = 280
+    element_height: int = 56
 
 class MainMenuLayout(MenuLayout):
     label: CTkLabel
@@ -55,26 +60,34 @@ class MainMenuLayout(MenuLayout):
         self.label = CTkLabel(
             master=self.controller.get_master(), 
             text="MIPamati",
-            font=self.label_font
+            font=self.label_font,
+            width=self.element_width,
+            height=self.element_height
         )
 
         self.startButton = CTkButton(
             master=self.controller.get_master(), 
             text="Play!", 
             command=self.button_play,
-            font=self.font
+            font=self.font,
+            width=self.element_width,
+            height=self.element_height
         )
         self.settingsButton = CTkButton(
             master=self.controller.get_master(), 
             text="Settings",
             command=self.button_settings,
-            font=self.font
+            font=self.font,
+            width=self.element_width,
+            height=self.element_height
         )
         self.exitButton = CTkButton(
             master=self.controller.get_master(), 
             text="Exit", 
             command=self.button_exit,
-            font=self.font
+            font=self.font,
+            width=self.element_width,
+            height=self.element_height
         )
 
         self.buttons = [self.startButton, self.settingsButton, self.exitButton]
@@ -120,39 +133,6 @@ class MainMenuLayout(MenuLayout):
         if answer is positiveAnswer:
             self.controller.terminate()
 
-class GameLayout(Layout):
-    inputNumberLabel: CTkLabel
-    inputNumberEntry: CTkEntry
-
-    def initialize(self):
-        CTkMessagebox(
-            master=self.controller.get_master(),
-            width=1200,
-            title="Help",
-            message=LongMessage.GAME_DESCRIPTION.value, 
-            option_1="COOL"
-        ).get() # Value is dismissed, the method is used to resume execution ONLY after the box is closed
-        print("Messagebox closed")
-
-        self.inputNumberLabel = CTkLabel(
-            master=self.controller.get_master(), 
-            text="Input number",
-            font=(self.font[0], 18)
-        )
-        self.inputNumberEntry = CTkEntry(
-            master=self.controller.get_master(),
-            font=self.font
-        )
-
-    def place(self):
-        self.inputNumberLabel.place(relx=0.5, rely=0.1, anchor=N)
-        self.inputNumberEntry.place(relx=0.5, rely=0.3, anchor=CENTER)
-
-        self.placed_elements = [
-            self.inputNumberLabel, 
-            self.inputNumberEntry,
-        ]
-
 # TODO: implement settings
 #   1. Who begins the game (Human || Computer || Random)
 #   2. Alpha-beta pruning (ON || OFF)
@@ -169,7 +149,9 @@ class SettingsLayout(MenuLayout):
             master=self.controller.get_master(), 
             text="Go back!", 
             command=self.switch_to_main_menu,
-            font=self.font
+            font=self.font,
+            width=self.element_width,
+            height=self.element_height
         )
 
     def place(self):
@@ -183,6 +165,242 @@ class SettingsLayout(MenuLayout):
         self.mainMenuButton.destroy()
 
     def switch_to_main_menu(self):
+        self.controller.main_menu()
+
+class GameLayout(Layout):
+    game: UiGame = UiGame()
+
+    goesFirstLabel: CTkLabel
+    goesFirstValue: CTkLabel
+
+    inputNumberLabel: CTkLabel
+    inputNumberEntry: CTkEntry
+    inputNumberConfirm: CTkButton
+
+    algorithmLabel: CTkLabel
+    algorithmValue: CTkLabel
+
+    scoreLabel: CTkLabel
+    scoreValue: CTkLabel
+    
+    bankLabel: CTkLabel
+    bankValue: CTkLabel
+
+    turnLabel: CTkLabel
+    turnValue: CTkLabel
+
+    def initialize(self):
+        CTkMessagebox(
+            master=self.controller.get_master(),
+            width=1200,
+            title="Help",
+            message=LongMessage.GAME_DESCRIPTION.value, 
+            option_1="COOL"
+        ).get() # Value is dismissed, the method is used to resume execution ONLY after the box is closed
+        print("Messagebox closed")
+
+        self.mainMenuButton = CTkButton(
+            master=self.controller.get_master(), 
+            text="Quit (L)", 
+            command=self.switch_to_main_menu,
+            font=self.font,
+            width=60,
+            height=40
+        )
+
+        self.goesFirstLabel = CTkLabel(
+            master=self.controller.get_master(), 
+            text="Goes first",
+            font=self.font
+        )
+        self.goesFirstValue = CTkLabel(
+            master=self.controller.get_master(), 
+            text="Nobody",
+            font=self.font
+        )
+
+        self.inputNumberLabel = CTkLabel(
+            master=self.controller.get_master(), 
+            text="Input number",
+            font=self.font
+        )
+        self.inputNumberEntry = CTkEntry(
+            master=self.controller.get_master(),
+            font=self.font,
+            width=160,
+            height=40
+        )
+        self.inputNumberConfirm = CTkButton(
+            master=self.controller.get_master(), 
+            text="OK", 
+            command=self.confirm_input_number,
+            font=self.font,
+            width=40,
+            height=40
+        )
+
+        self.algorithmLabel = CTkLabel(
+            master=self.controller.get_master(), 
+            text="Algorithm",
+            font=self.font
+        )
+        self.algorithmValue = CTkLabel(
+            master=self.controller.get_master(), 
+            text="Nothing (+nothing)",
+            font=self.font
+        )
+
+        self.scoreLabel = CTkLabel(
+            master=self.controller.get_master(), 
+            text="Score",
+            font=self.font
+        )
+        self.scoreValue = CTkLabel(
+            master=self.controller.get_master(), 
+            text="0",
+            font=self.font
+        )
+
+        self.bankLabel = CTkLabel(
+            master=self.controller.get_master(), 
+            text="Bank",
+            font=self.font
+        )
+        self.bankValue = CTkLabel(
+            master=self.controller.get_master(), 
+            text="0",
+            font=self.font
+        )
+
+        self.turnLabel = CTkLabel(
+            master=self.controller.get_master(), 
+            text="Turn",
+            font=self.font
+        )
+        self.turnValue = CTkLabel(
+            master=self.controller.get_master(), 
+            text="0",
+            font=self.font
+        )
+
+    def place(self):
+        self.mainMenuButton.place(relx=0.01, rely=0.01)
+
+        self.goesFirstLabel.place(relx=0.2, rely=0.1, anchor=N)
+        self.goesFirstValue.place(relx=0.2, rely=0.17, anchor=N)
+
+        self.inputNumberLabel.place(relx=0.5, rely=0.1, anchor=N)
+        self.inputNumberEntry.place(relx=0.5, rely=0.2, anchor=CENTER)
+        self.inputNumberConfirm.place(relx=0.6, rely=0.2, anchor=CENTER)
+
+        self.algorithmLabel.place(relx=0.8, rely=0.1, anchor=N)
+        self.algorithmValue.place(relx=0.8, rely=0.17, anchor=N)
+
+        self.scoreLabel.place(relx=0.5, rely=0.45, anchor=CENTER)
+        self.scoreValue.place(relx=0.5, rely=0.5, anchor=CENTER)
+
+        self.bankLabel.place(relx=0.8, rely=0.45, anchor=CENTER)
+        self.bankValue.place(relx=0.8, rely=0.5, anchor=CENTER)
+
+        self.turnLabel.place(relx=0.8, rely=0.76, anchor=CENTER)
+        self.turnValue.place(relx=0.8, rely=0.83, anchor=CENTER)
+
+        self.placed_elements = [
+            self.mainMenuButton,
+            
+            self.goesFirstLabel,
+            self.goesFirstValue,
+            
+            self.inputNumberLabel, 
+            self.inputNumberEntry,
+            self.inputNumberConfirm,
+            
+            self.algorithmLabel,
+            self.algorithmValue,
+            
+            self.scoreLabel,
+            self.scoreValue,
+            
+            self.bankLabel,
+            self.bankValue,
+            
+            self.turnLabel,
+            self.turnValue,
+        ]
+
+        self.begin()
+
+    def begin(self):
+        self.reset_label_values()
+
+        self.game.play(self.game.getComputerPlayerId())
+        self.goesFirstValue.configure(text=str(self.game.getPlayerName()))
+        self.turnValue.configure(text=f'{str(self.game.getPlayerName())} [0]')
+
+    def reset_label_values(self):
+        self.bankValue.configure(text='0')
+        self.scoreValue.configure(text='0')
+
+    def confirm_input_number(self):
+        if self.game.isFirstInput:
+            self.handleInput(self.game.handleFirstInput, self.inputNumberEntry.get())
+        else:
+            self.handleInput(self.game.handleMove, self.inputNumberEntry.get())
+
+        turn = f'{self.game.getPlayerName()} [{str(self.game.getTurn() + 1)}]'
+
+        # score = '0000'
+        # game_score = str(self.game.score) + '-'
+        # for index in range(1, len(str(self.game.score))):
+        #     score[-index] = self.game.score[index - 1]
+
+        self.turnValue.configure(text=turn)
+        self.bankValue.configure(text=str(self.game.bank))
+        self.scoreValue.configure(text=str(self.game.score))
+
+        if self.game.areGameBoundariesMet():
+            self.game.calculateFinalScore()
+            self.bankValue.configure(text=str(self.game.bank))
+            self.scoreValue.configure(text=str(self.game.score))
+
+            isHumanWinner: bool = self.game.getWinnerPlayerId() is self.game.getHumanPlayerId()
+
+            CTkMessagebox(
+                master=self.controller.get_master(),
+                icon='check' if isHumanWinner else 'cancel',
+                title="Draugi, ir labi!" if isHumanWinner else "Draugi, rēali nav labi..." ,
+                message="You won!" if isHumanWinner else "You lost...", 
+                option_1="gg"
+            ).get()
+
+            self.begin()
+
+            return
+        
+        self.game.switchCurrentPlayer()
+        
+    def handleInput(self, callback: Callable, *args):
+        try:
+            callback(*args)
+        except InputException as e:
+            CTkMessagebox(
+                master=self.controller.get_master(),
+                icon="cancel",
+                title="Draugi, nav labi",
+                message=e, 
+                option_1="Ow!"
+            ).get()
+        except ValueError as e:
+            CTkMessagebox(
+                master=self.controller.get_master(),
+                icon="cancel",
+                title="Draugi, super nav labi",
+                message="Who do you think you are?", 
+                option_1="I'm a tester."
+            ).get()
+
+    def switch_to_main_menu(self):
+        self.game.die()
         self.controller.main_menu()
 
 class LayoutController:
@@ -207,13 +425,13 @@ class LayoutController:
   
     ### LAYOUTS
 
-    def main_menu(self):
+    def main_menu(self) -> None:
         self.set_layout(MainMenuLayout(self))
 
-    def play(self):
+    def play(self) -> None:
         self.set_layout(GameLayout(self))
 
-    def settings(self) -> MainMenuLayout:
+    def settings(self) -> None:
         self.set_layout(SettingsLayout(self))
         
     ### HELPERS
@@ -288,8 +506,6 @@ class LongMessage(Enum):
 ui_handler = UiHandler(UiInitializer().setup())
 
 layout_controller = LayoutController().set_ui_handler(ui_handler)
-
-layout_controller.main_menu()
-
+layout_controller.play()
 
 ui_handler.mainloop()

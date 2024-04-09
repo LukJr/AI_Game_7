@@ -1,7 +1,7 @@
 from Input.GameInputHandler import GameInputHandler
 from Structures.Move import Move
 
-class Game:
+class ConsoleGame:
 	# Game attributes
 	isLive: bool = False
 	bank: int = 0

@@ -1,6 +1,6 @@
-from Core.Game import Game
+from Core.ConsoleGame import ConsoleGame
 
 if __name__ == '__main__':
-	game = Game()
+	game = ConsoleGame()
 	
 	game.play()
