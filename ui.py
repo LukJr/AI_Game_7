@@ -1,6 +1,7 @@
 from __future__ import annotations
 from enum import Enum
 from customtkinter import *
+from tkinter import StringVar
 from CTkMessagebox import CTkMessagebox
 from typing_extensions import Self, Any, Callable
 from Core.UiGame import UiGame
@@ -144,8 +145,37 @@ class SettingsLayout(MenuLayout):
     def initialize(self):
         self.label = CTkLabel(
             master=self.controller.get_master(), 
-            text="WIP Settings (get outta here)",
+            text="Settings",
             font=self.label_font
+        )
+
+        self.alphaBetaPruningLabel = CTkLabel(
+            master=self.controller.get_master(), 
+            text="AlphaBetaPruning (1 - ON, 0 - OFF)",
+            font=self.font
+        )
+        alphaBetaPruning = StringVar(self.controller.get_master(), '1' if self.controller.ui_handler.settings.alpha_beta_on else '0') 
+        self.alphaBetaPruning = CTkOptionMenu(self.controller.get_master(), values=['1', '0'], variable=alphaBetaPruning,
+                                         command=self.set_alpha_beta_pruning, width=self.element_width,
+            height=self.element_height)
+        
+        self.gameStarterPlayerIdLabel = CTkLabel(
+            master=self.controller.get_master(), 
+            text="Game Starter Player ID (0 - Human, 1 - Computer)",
+            font=self.font
+        )
+
+        gameStarterPlayerId = StringVar(self.controller.get_master(), str(self.controller.ui_handler.settings.game_starter_player_id)) 
+        self.gameStarterPlayerId = CTkOptionMenu(self.controller.get_master(), values=['0', '1'], variable=gameStarterPlayerId,
+                                         command=self.set_game_starter_player_id, width=self.element_width,
+            height=self.element_height)
+        self.mainMenuButton = CTkButton(
+            master=self.controller.get_master(), 
+            text="Go back!", 
+            command=self.switch_to_main_menu,
+            font=self.font,
+            width=self.element_width,
+            height=self.element_height
         )
         self.mainMenuButton = CTkButton(
             master=self.controller.get_master(), 
@@ -159,12 +189,29 @@ class SettingsLayout(MenuLayout):
     def place(self):
         self.label.place(relx=self.element_rel_x, rely=self.label_rel_y, anchor=N)
         self.mainMenuButton.place(relx=self.element_rel_x, rely=self.first_element_rel_y, anchor=CENTER)
+        self.alphaBetaPruningLabel.place(relx=self.element_rel_x, rely=self.first_element_rel_y + 0.1, anchor=CENTER)
+        self.alphaBetaPruning.place(relx=self.element_rel_x, rely=self.first_element_rel_y + 0.2, anchor=CENTER)
+        self.gameStarterPlayerIdLabel.place(relx=self.element_rel_x, rely=self.first_element_rel_y + 0.3, anchor=CENTER)
+        self.gameStarterPlayerId.place(relx=self.element_rel_x, rely=self.first_element_rel_y + 0.4, anchor=CENTER)
 
-        self.placed_elements = [self.label, self.mainMenuButton]
+        self.placed_elements = [self.label, self.mainMenuButton, self.alphaBetaPruningLabel, self.alphaBetaPruning, self.gameStarterPlayerIdLabel, self.gameStarterPlayerId]
+
+    def set_alpha_beta_pruning(self, e):
+        print(bool(int(self.alphaBetaPruning.get())), type(bool(int(self.alphaBetaPruning.get()))))
+        self.controller.ui_handler.settings.alpha_beta_on = bool(int(self.alphaBetaPruning.get()))
+
+    def set_game_starter_player_id(self, e):
+        self.controller.ui_handler.settings.game_starter_player_id = int(self.gameStarterPlayerId.get())
+
+        print(self.controller.ui_handler.settings.alpha_beta_on, self.controller.ui_handler.settings.game_starter_player_id)
 
     def destroy(self):
         self.label.destroy()
         self.mainMenuButton.destroy()
+        self.alphaBetaPruningLabel.destroy()
+        self.alphaBetaPruning.destroy()
+        self.gameStarterPlayerIdLabel.destroy()
+        self.gameStarterPlayerId.destroy()
 
     def switch_to_main_menu(self):
         self.controller.main_menu()
@@ -339,7 +386,9 @@ class GameLayout(Layout):
 
         print("----------- GAME RESET -----------")
 
-        self.game.play(self.game.getComputerPlayerId())
+        PLAYER = int(self.controller.get_ui_handler().settings.game_starter_player_id)
+        self.game.play(PLAYER)
+        print(f'{self.game.getPlayerName()} starts!')
         self.goesFirstValue.configure(text=str(self.game.getPlayerName()))
         
         self.turnValue.configure(text=f'{str(self.game.getPlayerName())} [0]')
@@ -351,6 +400,7 @@ class GameLayout(Layout):
         self.bankValue.configure(text='0')
         self.scoreValue.configure(text='0')
         self.turnValue.configure(text='')
+        self.algorithmValue.configure(text='Minimax (+ Alpha-Beta pruning)' if bool(self.controller.get_ui_handler().settings.alpha_beta_on) else 'Minimax')
 
     def confirm_input_number(self):
         if not self.performHumanMove():
@@ -390,7 +440,7 @@ class GameLayout(Layout):
         score = self.game.score
         bank = self.game.bank
         turn = 0
-        minmax_alphabeta = 0 # 0 = minmax 1 = alpha-beta
+        minmax_alphabeta = bool(self.controller.get_ui_handler().settings.alpha_beta_on) # 0 = minmax 1 = alpha-beta
 
         class GameState: # 
             def __init__(self, number, bank, turn=0, parent=None, hValue=None, lastmove=None):
@@ -725,14 +775,20 @@ class UiHandler:
 
     last_debounce_id: str | None = None
 
-    def __init__(self, ui: CTk):
+    settings: Settings
+
+    def __init__(self, ui: CTk, settings: Settings):
         self.ui = ui
+        self.settings = settings
 
     # Made to acquire the UI to pass to the created UI elements.
     # Please don't use it to call methods from it!
     # Create methods in UiHandler (self) instead.
     def get_ui(self) -> CTk:
         return self.ui
+    
+    def set_settings(self, settings: Settings):
+        self.settings = settings
     
     # Time in ms
     def debounce(self, callback: Callable, *args):
@@ -760,11 +816,29 @@ class UiHandler:
     def terminate(self):
         self.ui.quit()
 
+class Settings:
+    alpha_beta_on = True
+    game_starter_player_id = 0
+
+    def toggleAlphaBeta(self):
+        self.alpha_beta_on = not self.alpha_beta_on
+
+    def set_game_starter_player_id(self, playerId: int):
+        self.game_starter_player_id = playerId
+
+    def getIsAlphaBeta(self):
+        return self.alpha_beta_on
+    
+    def get_game_starter_player_id(self):
+        self.game_starter_player_id
+
 # Because who wants to see such long strings in code, am I right?
 class LongMessage(Enum):
     GAME_DESCRIPTION = "Spēles sākumā ir dots cilvēka-spēlētāja izvēlētais skaitlis diapazonā no 20 līdz 30. Kopīgs punktu skaits ir vienāds ar 0 (punkti netiek skaitīti katram spēlētājam atsevišķi). Turklāt spēlē tiek izmantota spēles banka, kura sākotnēji ir vienāda ar 0. Spēlētāji veic gājienus pēc kārtas, reizinot pašreizējā brīdī esošu skaitli ar 3, 4 vai 5. Ja reizināšanas rezultātā tiek iegūts pāra skaitlis, tad kopīgajam punktu skaitam tiek pieskaitīts 1 punkts, bet ja nepāra skaitlis – tad 1 punkts tiek atņemts. Savukārt, ja tiek iegūts skaitlis, kas beidzas ar 0 vai 5, tad bankai tiek pieskaitīts 1 punkts. Spēle beidzas, kad ir iegūts skaitlis, kas ir lielāks par vai vienāds ar 3000. Ja kopīgais punktu skaits ir pāra skaitlis, tad no tā atņem bankā uzkrātos punktus. Ja tas ir nepāra skaitlis, tad tam pieskaita bankā uzkrātos punktus. Ja kopīgā punktu skaita gala vērtība ir pāra skaitlis, uzvar spēlētājs, kas uzsāka spēli. Ja nepāra skaitlis, tad otrais spēlētājs."
 
-ui_handler = UiHandler(UiInitializer().setup())
+settings = Settings()
+
+ui_handler = UiHandler(UiInitializer().setup(), settings)
 
 layout_controller = LayoutController().set_ui_handler(ui_handler)
 layout_controller.main_menu()
