@@ -339,7 +339,7 @@ class GameLayout(Layout):
 
         print("----------- GAME RESET -----------")
 
-        self.game.play(self.game.getComputerPlayerId())
+        self.game.play(self.game.getHumanPlayerId())
         self.goesFirstValue.configure(text=str(self.game.getPlayerName()))
         
         self.turnValue.configure(text=f'{str(self.game.getPlayerName())} [0]')
@@ -389,7 +389,7 @@ class GameLayout(Layout):
         #placeholder variables, add function to get these variables from the active game state
         score = self.game.score
         bank = self.game.bank
-        turn = 0
+        turn = self.game.getTurn()
         minmax_alphabeta = 0 # 0 = minmax 1 = alpha-beta
 
         class GameState: # 
