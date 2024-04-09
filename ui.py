@@ -442,6 +442,7 @@ class GameLayout(Layout):
         turn = self.game.getTurn()
         minmax_alphabeta = int(self.controller.get_ui_handler().settings.alpha_beta_on) # 0 = minmax 1 = alpha-beta
 
+        branches = 0
         print('alpha beta on?', minmax_alphabeta)
         class GameState: # 
             def __init__(self, number, bank, turn=0, parent=None, hValue=None, lastmove=None):
@@ -502,7 +503,7 @@ class GameLayout(Layout):
 
             moves_multiplier = [3,4,5]
             if (extended_range): 
-                moves_multiplier = [20,21,22,23,24,25,26,27,28,29,]
+                moves_multiplier = [20,21,22,23,24,25,26,27,28,29,30]
                 
 
             for multiplier in moves_multiplier:
