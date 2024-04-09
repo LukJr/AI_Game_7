@@ -48,13 +48,20 @@ class UiGame:
 			print(move.getData())
 
 	def getTurn(self) -> int:
-		return self.moves.index(self.moves[-1])
+		#if not self.moves:
+		#	return 0
+
+		return len(self.moves)
 
 	def areGameBoundariesMet(self) -> bool:
 		return self.score >= self.scoreThreshold
 
 	def setCurrentPlayer(self, playerId) -> None:
 		self.currentPlayerId = playerId
+
+	def isPlayerComputer(self) -> bool:
+		print(self.currentPlayerId)
+		return self.currentPlayerId == self.getComputerPlayerId()
 
 	def getHumanPlayerId(self) -> int:
 		return 0
@@ -63,6 +70,7 @@ class UiGame:
 		return 1
 	
 	def getPlayerName(self) -> str:
+		print(self.currentPlayerId)
 		return self.players[self.currentPlayerId]
 
 	# Supports 2 players only
@@ -74,12 +82,14 @@ class UiGame:
 			self.currentPlayerId = self.getHumanPlayerId()
 			print('--Switched from ply2 to ply1!--')
 
+
+
 	def die(self) -> None:
 		self.isLive = False
 		print('Game shutdown.')
 
 	def populatePlayers(self, goes_first_player_id: int = 0) -> None:
-		playerIds: list[int] = [0, 1] if goes_first_player_id == 0 else [1, 0]
+		playerIds: list[int] = [self.getHumanPlayerId(), self.getComputerPlayerId()] if goes_first_player_id == self.getHumanPlayerId() else [self.getComputerPlayerId(), self.getHumanPlayerId()]
 
 		for playerId in playerIds:
 			self.playerIds.append(playerId)
@@ -93,8 +103,6 @@ class UiGame:
 		self.recordMove(move)
 
 		self.isFirstInput = False
-
-		self.switchCurrentPlayer()
 
 		print(f'Bank! {self.bank}')
 		print(f'Score! {self.score}')

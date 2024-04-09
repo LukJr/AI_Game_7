@@ -5,6 +5,8 @@ from CTkMessagebox import CTkMessagebox
 from typing_extensions import Self, Any, Callable
 from Core.UiGame import UiGame
 from Exceptions.InputException import InputException
+from random import randint
+import time
 
 class Layout: 
     controller: LayoutController
@@ -335,11 +337,16 @@ class GameLayout(Layout):
 
         self.game.play(self.game.getComputerPlayerId())
         self.goesFirstValue.configure(text=str(self.game.getPlayerName()))
+        
         self.turnValue.configure(text=f'{str(self.game.getPlayerName())} [0]')
+
+        if self.game.isPlayerComputer():
+            self.controller.ui_handler.get_ui().after(1000, self.performComputerMove)
 
     def reset_label_values(self):
         self.bankValue.configure(text='0')
         self.scoreValue.configure(text='0')
+        self.turnValue.configure(text='')
 
     def confirm_input_number(self):
         if self.game.isFirstInput:
@@ -350,21 +357,16 @@ class GameLayout(Layout):
         if not is_input_successful:
             return
 
-        turn = f'{self.game.getPlayerName()} [{str(self.game.getTurn() + 1)}]'
-
         # score = '0000'
         # game_score = str(self.game.score) + '-'
         # for index in range(1, len(str(self.game.score))):
         #     score[-index] = self.game.score[index - 1]
 
-        self.turnValue.configure(text=turn)
-        self.bankValue.configure(text=str(self.game.bank))
-        self.scoreValue.configure(text=str(self.game.score))
+        self.updateScoreAndBank()
 
         if self.game.areGameBoundariesMet():
             self.game.calculateFinalScore()
-            self.bankValue.configure(text=str(self.game.bank))
-            self.scoreValue.configure(text=str(self.game.score))
+            self.updateScoreAndBank()
 
             isHumanWinner: bool = self.game.getWinnerPlayerId() is self.game.getHumanPlayerId()
 
@@ -380,8 +382,46 @@ class GameLayout(Layout):
 
             return
         
-        self.game.switchCurrentPlayer()
+        self.switchCurrentPlayer()
+        self.controller.ui_handler.get_ui().after(1000, self.performComputerMove)
         
+    def switchCurrentPlayer(self):
+        self.game.switchCurrentPlayer()
+        self.turnValue.configure(text=f'{self.game.getPlayerName()} [{str(self.game.getTurn())}]')
+        
+    def updateScoreAndBank(self):
+        self.bankValue.configure(text=str(self.game.bank))
+        self.scoreValue.configure(text=str(self.game.score))
+        
+    def performComputerMove(self):
+        if self.game.isFirstInput:
+            self.game.handleFirstInput(randint(20, 30))
+        else:
+            self.game.handleMove(randint(3, 5))
+            
+        self.updateScoreAndBank()
+        
+        if self.game.areGameBoundariesMet():
+            self.game.calculateFinalScore()
+            self.updateScoreAndBank()
+
+            isHumanWinner: bool = self.game.getWinnerPlayerId() is self.game.getHumanPlayerId()
+
+            CTkMessagebox(
+                master=self.controller.get_master(),
+                icon='check' if isHumanWinner else 'cancel',
+                title="Draugi, ir labi!" if isHumanWinner else "Draugi, rēali nav labi..." ,
+                message="You won!" if isHumanWinner else "You lost...", 
+                option_1="gg"
+            ).get()
+
+            self.begin()
+
+            return
+        
+        self.switchCurrentPlayer()
+            
+
     def handleInput(self, callback: Callable, *args) -> int:
         try:
             callback(*args)
