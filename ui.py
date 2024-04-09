@@ -370,7 +370,19 @@ class GameLayout(Layout):
         self.controller.ui_handler.debounce(self.changeInputState, 1000, True)
 
     def performComputerMove(self):
-        moveValue = randint(20, 30) if self.game.isFirstInput else randint(3, 5)
+        #placeholder variables, add function to get these variables from the active game state
+        score = 25
+        bank = 0
+        turn = 0
+        minmax_alphabeta = 0 # 0 = minmax 1 = alpha-beta
+
+        if (minmax_alphabeta):
+            # alpha-beta
+            moveValue = randint(20, 30) if self.game.isFirstInput else randint(3, 5) 
+        else:
+            # MinMax
+            moveValue = randint(20, 30) if self.game.isFirstInput else randint(3, 5)
+
         if not self.validateInput(moveValue):
             return 0
             
