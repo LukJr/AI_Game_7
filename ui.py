@@ -439,7 +439,7 @@ class GameLayout(Layout):
         #placeholder variables, add function to get these variables from the active game state
         score = self.game.score
         bank = self.game.bank
-        turn = 0
+        turn = self.game.getTurn()
         minmax_alphabeta = bool(self.controller.get_ui_handler().settings.alpha_beta_on) # 0 = minmax 1 = alpha-beta
 
         class GameState: # 
