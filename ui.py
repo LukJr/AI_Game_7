@@ -440,8 +440,9 @@ class GameLayout(Layout):
         score = self.game.score
         bank = self.game.bank
         turn = self.game.getTurn()
-        minmax_alphabeta = bool(self.controller.get_ui_handler().settings.alpha_beta_on) # 0 = minmax 1 = alpha-beta
+        minmax_alphabeta = int(self.controller.get_ui_handler().settings.alpha_beta_on) # 0 = minmax 1 = alpha-beta
 
+        print('alpha beta on?', minmax_alphabeta)
         class GameState: # 
             def __init__(self, number, bank, turn=0, parent=None, hValue=None, lastmove=None):
                 self.number = number
@@ -589,7 +590,7 @@ class GameLayout(Layout):
                 moveValue = root_state.get_lastmove_of_child_with_highest_hValue()
             else:
                 moveValue = root_state.get_lastmove_of_child_with_min_hValue()
-            moveValue = randint(20, 30) if self.game.isFirstInput else randint(3, 5) 
+            # moveValue = randint(20, 30) if self.game.isFirstInput else randint(3, 5) 
         else:
             # MinMax
             if (self.game.isFirstInput):
