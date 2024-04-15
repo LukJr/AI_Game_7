@@ -437,7 +437,9 @@ class GameLayout(Layout):
     def performComputerMove(self):
         
         #placeholder variables, add function to get these variables from the active game state
-        score = self.game.score
+        score = 1 if self.game.score == 0 else self.game.score
+        # score = self.game.score
+        print(">>> computer first move score: ", score)
         bank = self.game.bank
         turn = self.game.getTurn()
         minmax_alphabeta = int(self.controller.get_ui_handler().settings.alpha_beta_on) # 0 = minmax 1 = alpha-beta
@@ -509,6 +511,7 @@ class GameLayout(Layout):
             for multiplier in moves_multiplier:
                 new_turn = current_state.turn + 1
                 new_number = current_state.number * multiplier
+                # print('setting new state number...', new_number)
                 new_number = new_number + (1 if is_even(new_number) else -1)
                 new_bank = current_state.bank + (1 if ends_in_0_or_5(new_number) else 0)
                 
